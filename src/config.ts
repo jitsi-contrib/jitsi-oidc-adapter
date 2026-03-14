@@ -1,13 +1,10 @@
-// keycloak
-export const KEYCLOAK_ORIGIN = Deno.env.get("KEYCLOAK_ORIGIN") ||
-  "https://ucs-sso-ng.mydomain.corp";
-export const KEYCLOAK_ORIGIN_INTERNAL =
-  Deno.env.get("KEYCLOAK_ORIGIN_INTERNAL") || KEYCLOAK_ORIGIN;
-export const KEYCLOAK_REALM = Deno.env.get("KEYCLOAK_REALM") || "ucs";
-export const KEYCLOAK_CLIENT_ID = Deno.env.get("KEYCLOAK_CLIENT_ID") || "jitsi";
-export const KEYCLOAK_CLIENT_SECRET = Deno.env.get("KEYCLOAK_CLIENT_SECRET") ||
-  "";
-export const KEYCLOAK_MODE = Deno.env.get("KEYCLOAK_MODE") || "query";
+// oidc
+export const OIDC_ISSUER_URL = Deno.env.get("OIDC_ISSUER_URL") ||
+  "https://ucs-sso-ng.mydomain.corp/realms/ucs";
+export const OIDC_CLIENT_ID = Deno.env.get("OIDC_CLIENT_ID") || "jitsi";
+export const OIDC_CLIENT_SECRET = Deno.env.get("OIDC_CLIENT_SECRET") || "";
+export const OIDC_SCOPES = Deno.env.get("OIDC_SCOPES") ||
+  "openid profile email";
 
 // jwt
 export const JWT_ALG = Deno.env.get("JWT_ALG") || "HS256";

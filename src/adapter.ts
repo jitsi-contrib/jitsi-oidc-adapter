@@ -9,12 +9,10 @@ import {
   JWT_APP_SECRET,
   JWT_EXP_SECOND,
   JWT_HASH,
-  KEYCLOAK_CLIENT_ID,
-  KEYCLOAK_CLIENT_SECRET,
-  KEYCLOAK_MODE,
-  KEYCLOAK_ORIGIN,
-  KEYCLOAK_ORIGIN_INTERNAL,
-  KEYCLOAK_REALM,
+  OIDC_CLIENT_ID,
+  OIDC_CLIENT_SECRET,
+  OIDC_ISSUER_URL,
+  OIDC_SCOPES,
   PORT,
 } from "./config.ts";
 import { createContext } from "./context.ts";
@@ -23,13 +21,13 @@ import type { UserInfo } from "./context.ts";
 // -----------------------------------------------------------------------------
 // Globals
 // -----------------------------------------------------------------------------
-const KEYCLOAK_AUTH_URI = `${KEYCLOAK_ORIGIN}` +
+const AUTH_URI = `${KEYCLOAK_ORIGIN}` +
   `/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth` +
   `?client_id=${KEYCLOAK_CLIENT_ID}&response_mode=${KEYCLOAK_MODE}` +
   `&response_type=code&scope=openid&prompt=consent`;
-const KEYCLOAK_TOKEN_URI = `${KEYCLOAK_ORIGIN_INTERNAL}` +
+const TOKEN_URI = `${KEYCLOAK_ORIGIN_INTERNAL}` +
   `/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
-const KEYCLOAK_USERINFO_URI = `${KEYCLOAK_ORIGIN_INTERNAL}` +
+const USERINFO_URI = `${KEYCLOAK_ORIGIN_INTERNAL}` +
   `/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo`;
 let CRYPTO_KEY: CryptoKey;
 
@@ -101,7 +99,7 @@ async function setCryptoKey() {
 }
 
 // -----------------------------------------------------------------------------
-// Redirect the user to Keycloak's auth page to get the short-term auth code.
+// Redirect the user to the OIDC auth page to get the short-term auth code.
 // -----------------------------------------------------------------------------
 function auth(req: Request): Response {
   try {
@@ -115,10 +113,9 @@ function auth(req: Request): Response {
 
     const state = encodeURIComponent(jsonState);
     const redirectUri = `https://${host}/oidc/tokenize`;
-    const keycloakAuthPage =
-      `${KEYCLOAK_AUTH_URI}&redirect_uri=${redirectUri}&state=${state}`;
+    const authPage = `${AUTH_URI}&redirect_uri=${redirectUri}&state=${state}`;
 
-    return Response.redirect(keycloakAuthPage, STATUS_CODE.Found);
+    return Response.redirect(authPage, STATUS_CODE.Found);
   } catch (e) {
     console.error(e);
     return unauthorized();
@@ -163,18 +160,18 @@ async function getAccessToken(
   data.append("code", code);
   data.append("state", state);
 
-  if (KEYCLOAK_CLIENT_SECRET) {
+  if (OIDC_CLIENT_SECRET) {
     headers.append(
       "Authorization",
       "Basic " +
-        encodeBase64(`${KEYCLOAK_CLIENT_ID}:${KEYCLOAK_CLIENT_SECRET}`),
+        encodeBase64(`${OIDC_CLIENT_ID}:${OIDC_CLIENT_SECRET}`),
     );
   } else {
-    data.append("client_id", KEYCLOAK_CLIENT_ID);
+    data.append("client_id", OIDC_CLIENT_ID);
   }
 
   // Send the request for the access token.
-  const res = await fetch(KEYCLOAK_TOKEN_URI, {
+  const res = await fetch(TOKEN_URI, {
     headers: headers,
     method: "POST",
     body: data,
@@ -187,13 +184,13 @@ async function getAccessToken(
 }
 
 // -----------------------------------------------------------------------------
-// Get the user info from Keycloak by using the access token.
+// Get the user info from OIDC by using the access token.
 // -----------------------------------------------------------------------------
 async function getUserInfo(
   accessToken: string,
 ): Promise<UserInfo> {
   // Send request for the user info.
-  const res = await fetch(KEYCLOAK_USERINFO_URI, {
+  const res = await fetch(USERINFO_URI, {
     headers: {
       "Accept": "application/json",
       "Authorization": `Bearer ${accessToken}`,
@@ -294,8 +291,8 @@ function getMeetingUri(
 
 // -----------------------------------------------------------------------------
 // - User comes here after redirected by the auth page with a short-term code
-// - Get Keycloak's access token by using this short-term auth code
-// - Get the user info from Keycloak by using the access code
+// - Get the OIDC access token by using this short-term auth code
+// - Get the OIDC user info by using the access code
 // - Generate Jitsi's token by using the user info
 // - Redirect the user to Jitsi's meeting page with a token and hashes
 // -----------------------------------------------------------------------------
@@ -324,10 +321,10 @@ async function tokenize(req: Request): Promise<Response> {
       client = ClientType.electron;
     }
 
-    // Get the access token from Keycloak using the short-term auth code.
+    // Get the OIDC access token by using the short-term auth code.
     const accessToken = await getAccessToken(host, code, jsonState);
 
-    // Get the user info from Keycloak using the access token.
+    // Get the OIDC user info by using the access token.
     const userInfo = await getUserInfo(accessToken);
 
     // Generate Jitsi token.
@@ -403,16 +400,12 @@ async function handler(req: Request): Promise<Response> {
 // main
 // -----------------------------------------------------------------------------
 async function main() {
-  console.log(`KEYCLOAK_ORIGIN: ${KEYCLOAK_ORIGIN}`);
-  console.log(`KEYCLOAK_ORIGIN_INTERNAL: ${KEYCLOAK_ORIGIN_INTERNAL}`);
-  console.log(`KEYCLOAK_REALM: ${KEYCLOAK_REALM}`);
-  console.log(`KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}`);
+  console.log(`OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}`);
+  console.log(`OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}`);
   console.log(
-    `KEYCLOAK_CLIENT_SECRET: ${
-      KEYCLOAK_CLIENT_SECRET ? "*** masked ***" : "not used"
-    }`,
+    `OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET ? "*** masked ***" : "not used"}`,
   );
-  console.log(`KEYCLOAK_MODE: ${KEYCLOAK_MODE}`);
+  console.log(`OIDC_SCOPES: ${OIDC_SCOPES}`);
   console.log(`JWT_ALG: ${JWT_ALG}`);
   console.log(`JWT_HASH: ${JWT_HASH}`);
   console.log(`JWT_APP_ID: ${JWT_APP_ID}`);
