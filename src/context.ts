@@ -4,14 +4,14 @@
 //
 // Update the codes according to your requirements. Welcome to TypeScript :)
 // -----------------------------------------------------------------------------
-export interface KeycloakUserInfo {
+export interface UserInfo {
   sub: string;
   name?: string;
   preferred_username?: string;
   email?: string;
 }
 
-export function createContext(userInfo: KeycloakUserInfo) {
+export function createContext(userInfo: UserInfo) {
   const context = {
     user: {
       id: userInfo.sub,
