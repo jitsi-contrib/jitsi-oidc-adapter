@@ -21,14 +21,10 @@ import type { UserInfo } from "./context.ts";
 // -----------------------------------------------------------------------------
 // Globals
 // -----------------------------------------------------------------------------
-const AUTH_URI = `${KEYCLOAK_ORIGIN}` +
-  `/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth` +
-  `?client_id=${KEYCLOAK_CLIENT_ID}&response_mode=${KEYCLOAK_MODE}` +
-  `&response_type=code&scope=openid&prompt=consent`;
-const TOKEN_URI = `${KEYCLOAK_ORIGIN_INTERNAL}` +
-  `/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
-const USERINFO_URI = `${KEYCLOAK_ORIGIN_INTERNAL}` +
-  `/realms/${KEYCLOAK_REALM}/protocol/openid-connect/userinfo`;
+const DISCOVERY_URL = `${OIDC_ISSUER_URL}/.well-known/openid-configuration`;
+let AUTH_ENDPOINT = "";
+let TOKEN_ENDPOINT = "";
+let USERINFO_ENDPOINT = "";
 let CRYPTO_KEY: CryptoKey;
 
 interface StateType {
@@ -99,21 +95,59 @@ async function setCryptoKey() {
 }
 
 // -----------------------------------------------------------------------------
+// Get OIDC endpoints.
+// -----------------------------------------------------------------------------
+async function getEndpoints() {
+  try {
+    const res = await fetch(DISCOVERY_URL);
+    if (!res.ok) throw "Failed to get endpoints";
+
+    const config = await res.json();
+    AUTH_ENDPOINT = config.authorization_endpoint;
+    TOKEN_ENDPOINT = config.token_endpoint;
+    USERINFO_ENDPOINT = config.userinfo_endpoint;
+
+    console.log(`AUTH_ENDPOINT: ${AUTH_ENDPOINT}`);
+    console.log(`TOKEN_ENDPOINT: ${TOKEN_ENDPOINT}`);
+    console.log(`USERINFO_ENDPOINT: ${USERINFO_ENDPOINT}`);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Prepare the auth URI for the OIDC auth page.
+// -----------------------------------------------------------------------------
+async function getAuthUri(redirectUri: string, state: string) {
+  if (!AUTH_ENDPOINT) await getEndpoints();
+
+  const params = new URLSearchParams({
+    client_id: OIDC_CLIENT_ID,
+    response_type: "code",
+    scope: OIDC_SCOPES,
+    prompt: "consent",
+    redirect_uri: redirectUri,
+    state: state,
+  });
+
+  return `${AUTH_ENDPOINT}?${params.toString()}`;
+}
+
+// -----------------------------------------------------------------------------
 // Redirect the user to the OIDC auth page to get the short-term auth code.
 // -----------------------------------------------------------------------------
-function auth(req: Request): Response {
+async function auth(req: Request): Promise<Response> {
   try {
     const host = req.headers.get("host");
     if (!host) throw "host not found";
     const url = new URL(req.url);
     const search = url.search.substr(1);
     const searchParams = new URLSearchParams(search);
-    const jsonState = searchParams.get("state");
-    if (!jsonState) throw "state not found";
+    const state = searchParams.get("state");
+    if (!state) throw "state not found";
 
-    const state = encodeURIComponent(jsonState);
     const redirectUri = `https://${host}/oidc/tokenize`;
-    const authPage = `${AUTH_URI}&redirect_uri=${redirectUri}&state=${state}`;
+    const authPage = await getAuthUri(redirectUri, state);
 
     return Response.redirect(authPage, STATUS_CODE.Found);
   } catch (e) {
@@ -171,7 +205,8 @@ async function getAccessToken(
   }
 
   // Send the request for the access token.
-  const res = await fetch(TOKEN_URI, {
+  if (!TOKEN_ENDPOINT) await getEndpoints();
+  const res = await fetch(TOKEN_ENDPOINT, {
     headers: headers,
     method: "POST",
     body: data,
@@ -190,7 +225,8 @@ async function getUserInfo(
   accessToken: string,
 ): Promise<UserInfo> {
   // Send request for the user info.
-  const res = await fetch(USERINFO_URI, {
+  if (!USERINFO_ENDPOINT) await getEndpoints();
+  const res = await fetch(USERINFO_ENDPOINT, {
     headers: {
       "Accept": "application/json",
       "Authorization": `Bearer ${accessToken}`,
@@ -388,7 +424,7 @@ async function handler(req: Request): Promise<Response> {
   } else if (path === "/oidc/health") {
     return ok("healthy");
   } else if (path === "/oidc/auth") {
-    return auth(req);
+    return await auth(req);
   } else if (path === "/oidc/tokenize") {
     return await tokenize(req);
   } else {
@@ -417,6 +453,9 @@ async function main() {
   // Generate and set the crypto key once at the beginning and use the same key
   // during the process lifetime.
   await setCryptoKey();
+
+  // Get OIDC endpoints. It will try again if it fails in the first try.
+  await getEndpoints();
 
   Deno.serve({
     hostname: HOSTNAME,
