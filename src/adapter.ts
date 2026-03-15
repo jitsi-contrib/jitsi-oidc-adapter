@@ -28,8 +28,11 @@ let USERINFO_ENDPOINT = "";
 let CRYPTO_KEY: CryptoKey;
 
 interface StateType {
-  tenant?: string;
+  android?: boolean;
+  electron?: boolean;
+  ios?: boolean;
   room: string;
+  tenant?: string;
   [key: string]: boolean | string | undefined;
 }
 
@@ -108,7 +111,7 @@ async function setCryptoKey() {
 }
 
 // -----------------------------------------------------------------------------
-// Get OIDC endpoints.
+// Discover OIDC endpoints.
 // -----------------------------------------------------------------------------
 async function getEndpoints() {
   try {
