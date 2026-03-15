@@ -4,7 +4,7 @@
   - [1.1 jitsi-meet-tokens package](#11-jitsi-meet-tokens-package)
   - [1.2 Testing](#12-testing)
 - [2. Deno](#2-deno)
-- [3. Keycloak adapter](#3-keycloak-adapter)
+- [3. OIDC adapter](#3-oidc-adapter)
   - [3.1 Cloning the repository](#31-cloning-the-repository)
   - [3.2 Adapter service](#32-adapter-service)
     - [3.2.1 Adapter user](#321-adapter-user)
@@ -21,10 +21,9 @@
   - [6.4 Restart Prosody](#64-restart-prosody)
   - [6.5 Jitsi-meet](#65-jitsi-meet)
 
-The setup guide to install `Jitsi Keycloak Adapter v2` on a standalone Jitsi
-server.
+The setup guide to install `Jitsi OIDC Adapter` on a standalone Jitsi server.
 
-Tested on `Debian 12 Bookworm` with `Jitsi v2.0.10532`. Use `root` account while
+Tested on `Debian 12 Bookworm` with `Jitsi v2.0.10741`. Use `root` account while
 running the commands.
 
 ## 1. Token authentication
@@ -72,7 +71,7 @@ cp /tmp/deno /usr/local/bin/
 deno --version
 ```
 
-## 3. Keycloak adapter
+## 3. OIDC adapter
 
 ### 3.1 Cloning the repository
 
@@ -81,12 +80,12 @@ Clone the repository:
 ```bash
 apt-get install git
 
-git clone https://github.com/nordeck/jitsi-keycloak-adapter-v2.git
-cd jitsi-keycloak-adapter-v2
+git clone https://github.com/jitsi-contrib/jitsi-oidc-adapter.git
+cd jitsi-oidc-adapter
 ```
 
 _As an alternative way, you may download the released package from
-[Releases](https://github.com/nordeck/jitsi-keycloak-adapter-v2/releases)._
+[Releases](https://github.com/jitsi-contrib/jitsi-oidc-adapter/releases)._
 
 ### 3.2 Adapter service
 
@@ -116,28 +115,20 @@ Update the adapter settings according to your environment. Edit
 
 You may also use environment variables instead of updating this config file.
 
-- `KEYCLOAK_ORIGIN`
+- `OIDC_ISSUER_URL`
 
-  Keycloak address
+  The base URL of the issuer such as
+  `https://my.provider.tld/realms/myrealm`
 
-- `KEYCLOAK_ORIGIN_INTERNAL`
+- `OIDC_CLIENT_ID`
 
-  Internal Keycloak address if `KEYCLOAK_ORIGIN` is not accessible for the
-  adapter service.
+  OIDC client ID
 
-- `KEYCLOAK_REALM`
+- `OIDC_CLIENT_SECRET`
 
-  Keycloak realm
-
-- `KEYCLOAK_CLIENT_ID`
-
-  Keycloak client ID
-
-- `KEYCLOAK_CLIENT_SECRET`
-
-  Keycloak client secret\
-  Required if client authentication is enabled in Keycloak, must be empty
-  otherwise.
+  OIDC client secret\
+  Required if client authentication is enabled in the OIDC provider, must be 
+  empty otherwise.
 
 - `JWT_APP_ID`
 
@@ -162,11 +153,11 @@ You may also use environment variables instead of updating this config file.
 
 Disable the `testing` line and enable the `prod` line in
 [/home/adapter/app/adapter.sh](../templates/home/adapter/app/adapter.sh) if
-`keycloak` has a trusted certificate. It should be for the production
+the OIDC provider has a trusted certificate. It should be for the production
 environment.
 
 ```bash
-# testing: allow self-signed certificate for Keycloak
+# testing: allow self-signed certificate for the OIDC provider
 #deno run --allow-net --allow-env --unsafely-ignore-certificate-errors $BASEDIR/adapter.ts
 
 # prod
