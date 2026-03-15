@@ -35,8 +35,7 @@ ENV PORT=9000
 USER deno
 EXPOSE 9000
 
-CMD \
-  [ "$(echo $ALLOW_UNSECURE_CERT | tr '[:upper:]' '[:lower:]')" = true ] && \
-    IGNORE_CERT_ERRORS="--unsafely-ignore-certificate-errors"; \
-\
-  deno run --allow-net --allow-env $IGNORE_CERT_ERRORS /app/adapter.ts
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
