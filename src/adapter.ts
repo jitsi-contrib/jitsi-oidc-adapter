@@ -137,6 +137,7 @@ async function getEndpoints() {
 // -----------------------------------------------------------------------------
 async function getAuthUri(redirectUri: string, state: string) {
   if (!AUTH_ENDPOINT) await getEndpoints();
+  if (!AUTH_ENDPOINT) throw "missing authentication endpoint";
 
   const params = new URLSearchParams({
     client_id: OIDC_CLIENT_ID,
@@ -220,6 +221,7 @@ async function getAccessToken(
   }
 
   if (!TOKEN_ENDPOINT) await getEndpoints();
+  if (!TOKEN_ENDPOINT) throw "missing token endpoint";
 
   // Send the request for the access token.
   const res = await fetch(TOKEN_ENDPOINT, {
@@ -241,6 +243,7 @@ async function getUserInfo(
   accessToken: string,
 ): Promise<UserInfo> {
   if (!USERINFO_ENDPOINT) await getEndpoints();
+  if (!USERINFO_ENDPOINT) throw "missing userinfo endpoint";
 
   // Send request for the user info.
   const res = await fetch(USERINFO_ENDPOINT, {
@@ -444,6 +447,9 @@ async function handler(req: Request): Promise<Response> {
 // main
 // -----------------------------------------------------------------------------
 async function main() {
+  // Get OIDC endpoints. It will try again if it fails in the first try.
+  await getEndpoints();
+
   console.log(`OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}`);
   console.log(`OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}`);
   console.log(
@@ -461,9 +467,6 @@ async function main() {
   // Generate and set the crypto key once at the beginning and use the same key
   // during the process lifetime.
   await setCryptoKey();
-
-  // Get OIDC endpoints. It will try again if it fails in the first try.
-  await getEndpoints();
 
   Deno.serve({
     hostname: HOSTNAME,
