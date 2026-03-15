@@ -450,6 +450,9 @@ async function handler(req: Request): Promise<Response> {
 // main
 // -----------------------------------------------------------------------------
 async function main() {
+  // Generate the crypto key and use it during the process lifetime.
+  await setCryptoKey();
+
   // Get OIDC endpoints. It will try later if it fails in the initial try.
   await getEndpoints();
 
@@ -467,14 +470,24 @@ async function main() {
   console.log(`HOSTNAME: ${HOSTNAME}`);
   console.log(`PORT: ${PORT}`);
 
-  // Generate and set the crypto key once at the beginning and use the same key
-  // during the process lifetime.
-  await setCryptoKey();
+  const controller = new AbortController();
+  const shutdown = () => controller.abort();
+  Deno.addSignalListener("SIGINT", shutdown);
+  Deno.addSignalListener("SIGTERM", shutdown);
 
-  Deno.serve({
-    hostname: HOSTNAME,
-    port: PORT,
-  }, handler);
+  try {
+    const server = Deno.serve({
+      hostname: HOSTNAME,
+      port: PORT,
+      signal: controller.signal,
+    }, handler);
+
+    // Wait the web server until the clean shutdown.
+    await server.finished;
+  } finally {
+    Deno.removeSignalListener("SIGINT", shutdown);
+    Deno.removeSignalListener("SIGTERM", shutdown);
+  }
 }
 
 // -----------------------------------------------------------------------------
