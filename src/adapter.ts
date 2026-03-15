@@ -42,15 +42,11 @@ const enum ClientType {
 // Detect the client type by using the state data coming from the client.
 // -----------------------------------------------------------------------------
 function detectClientType(state: StateType): ClientType {
-  if (state.ios) {
-    return ClientType.ios;
-  } else if (state.android) {
-    return ClientType.android;
-  } else if (state.electron) {
-    return ClientType.electron;
-  } else {
-    return ClientType.browser;
-  }
+  if (state.ios) return ClientType.ios;
+  if (state.android) return ClientType.android;
+  if (state.electron) return ClientType.electron;
+
+  return ClientType.browser;
 }
 
 // -----------------------------------------------------------------------------
