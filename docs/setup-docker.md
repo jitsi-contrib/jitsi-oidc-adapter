@@ -63,8 +63,8 @@ location ~ /oidc/ {
 ```
 
 I use `172.17.17.1` in this example because this is the IP address of my host
-machine and Jitsi's `web` container can access my `jitsi-oidc-adapter`
-container using this IP and port.
+machine and Jitsi's `web` container can access my `jitsi-oidc-adapter` container
+using this IP and port.
 
 ### 2.2 Token authentication
 

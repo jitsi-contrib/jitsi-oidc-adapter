@@ -117,8 +117,7 @@ You may also use environment variables instead of updating this config file.
 
 - `OIDC_ISSUER_URL`
 
-  The base URL of the issuer such as
-  `https://my.provider.tld/realms/myrealm`
+  The base URL of the issuer such as `https://my.provider.tld/realms/myrealm`
 
 - `OIDC_CLIENT_ID`
 
@@ -127,7 +126,7 @@ You may also use environment variables instead of updating this config file.
 - `OIDC_CLIENT_SECRET`
 
   OIDC client secret\
-  Required if client authentication is enabled in the OIDC provider, must be 
+  Required if client authentication is enabled in the OIDC provider, must be
   empty otherwise.
 
 - `JWT_APP_ID`
@@ -152,8 +151,8 @@ You may also use environment variables instead of updating this config file.
 #### 3.2.4 Production notes
 
 Disable the `testing` line and enable the `prod` line in
-[/home/adapter/app/adapter.sh](../templates/home/adapter/app/adapter.sh) if
-the OIDC provider has a trusted certificate. It should be for the production
+[/home/adapter/app/adapter.sh](../templates/home/adapter/app/adapter.sh) if the
+OIDC provider has a trusted certificate. It should be for the production
 environment.
 
 ```bash
