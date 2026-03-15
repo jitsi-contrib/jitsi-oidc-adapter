@@ -116,7 +116,7 @@ async function setCryptoKey() {
 async function getEndpoints() {
   try {
     const res = await fetch(DISCOVERY_URL);
-    if (!res.ok) throw "Failed to get endpoints";
+    if (!res.ok) throw new Error("Failed to get endpoints");
 
     const config = await res.json();
     AUTH_ENDPOINT = config.authorization_endpoint || "";
@@ -124,7 +124,7 @@ async function getEndpoints() {
     USERINFO_ENDPOINT = config.userinfo_endpoint || "";
 
     if (!AUTH_ENDPOINT || !TOKEN_ENDPOINT || !USERINFO_ENDPOINT) {
-      throw "Missing endpoint";
+      throw new Error("Missing endpoint");
     }
 
     console.log(`AUTH_ENDPOINT: ${AUTH_ENDPOINT}`);
@@ -140,7 +140,7 @@ async function getEndpoints() {
 // -----------------------------------------------------------------------------
 async function getAuthUri(redirectUri: string, state: string) {
   if (!AUTH_ENDPOINT) await getEndpoints();
-  if (!AUTH_ENDPOINT) throw "Missing authentication endpoint";
+  if (!AUTH_ENDPOINT) throw new Error("Missing authentication endpoint");
 
   const params = new URLSearchParams({
     client_id: OIDC_CLIENT_ID,
@@ -160,11 +160,11 @@ async function getAuthUri(redirectUri: string, state: string) {
 async function auth(req: Request): Promise<Response> {
   try {
     const host = req.headers.get("host");
-    if (!host) throw "host not found";
+    if (!host) throw new Error("host not found");
 
     const url = new URL(req.url);
     const state = url.searchParams.get("state");
-    if (!state) throw "state not found";
+    if (!state) throw new Error("state not found");
 
     const redirectUri = `https://${host}/oidc/tokenize`;
     const authPage = await getAuthUri(redirectUri, state);
@@ -224,7 +224,7 @@ async function getAccessToken(
   }
 
   if (!TOKEN_ENDPOINT) await getEndpoints();
-  if (!TOKEN_ENDPOINT) throw "Missing token endpoint";
+  if (!TOKEN_ENDPOINT) throw new Error("Missing token endpoint");
 
   // Send the request for the access token.
   const res = await fetch(TOKEN_ENDPOINT, {
@@ -234,7 +234,7 @@ async function getAccessToken(
   });
   const json = await res.json();
   const accessToken = json.access_token;
-  if (!accessToken) throw "access-token request failed";
+  if (!accessToken) throw new Error("access-token request failed");
 
   return accessToken;
 }
@@ -246,7 +246,7 @@ async function getUserInfo(
   accessToken: string,
 ): Promise<UserInfo> {
   if (!USERINFO_ENDPOINT) await getEndpoints();
-  if (!USERINFO_ENDPOINT) throw "Missing userinfo endpoint";
+  if (!USERINFO_ENDPOINT) throw new Error("Missing userinfo endpoint");
 
   // Send request for the user info.
   const res = await fetch(USERINFO_ENDPOINT, {
@@ -259,7 +259,7 @@ async function getUserInfo(
   const userInfo = await res.json() as UserInfo;
 
   // Sub is the mandotary field in response for a successful request.
-  if (!userInfo.sub) throw "No user info";
+  if (!userInfo.sub) throw new Error("No user info");
 
   return userInfo;
 }
@@ -387,21 +387,21 @@ function generateTokenizeResponse(uri: string, client: ClientType): Response {
 async function tokenize(req: Request): Promise<Response> {
   try {
     const host = req.headers.get("host");
-    if (!host) throw "host not found";
+    if (!host) throw new Error("host not found");
 
     const url = new URL(req.url);
     const searchParams = url.searchParams;
 
     const code = searchParams.get("code");
-    if (!code) throw "code not found";
+    if (!code) throw new Error("code not found");
 
     const jsonState = searchParams.get("state");
-    if (!jsonState) throw "state not found";
+    if (!jsonState) throw new Error("state not found");
 
     const state = JSON.parse(jsonState) as StateType;
     const sub = getSub(host, state.tenant);
     const room = state.room;
-    if (!room) throw "room not found in state";
+    if (!room) throw new Error("room not found in state");
 
     // Detect client type
     const client = detectClientType(state);
