@@ -450,7 +450,7 @@ async function handler(req: Request): Promise<Response> {
 // main
 // -----------------------------------------------------------------------------
 async function main() {
-  // Get OIDC endpoints. It will try again if it fails in the first try.
+  // Get OIDC endpoints. It will try later if it fails in the initial try.
   await getEndpoints();
 
   console.log(`OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}`);

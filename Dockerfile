@@ -15,9 +15,11 @@ WORKDIR /app
 
 COPY --from=trivy /container.json /SBOM/container.json
 COPY src/config.ts src/context.ts src/adapter.ts /app/
+COPY docker-entrypoint.sh /usr/local/bin/
 RUN \
   deno cache /app/adapter.ts && \
-  deno info /app/adapter.ts --json > /SBOM/application-dependencies.json
+  deno info /app/adapter.ts --json > /SBOM/application-dependencies.json && \
+  chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENV OIDC_ISSUER_URL="https://ucs-sso-ng.mydomain.corp/realms/ucs"
 ENV OIDC_CLIENT_ID="jitsi"
@@ -34,8 +36,4 @@ ENV PORT=9000
 
 USER deno
 EXPOSE 9000
-
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
 ENTRYPOINT ["docker-entrypoint.sh"]
