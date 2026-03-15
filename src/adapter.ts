@@ -140,7 +140,7 @@ async function getEndpoints() {
 // -----------------------------------------------------------------------------
 async function getAuthUri(redirectUri: string, state: string) {
   if (!AUTH_ENDPOINT) await getEndpoints();
-  if (!AUTH_ENDPOINT) throw "missing authentication endpoint";
+  if (!AUTH_ENDPOINT) throw "Missing authentication endpoint";
 
   const params = new URLSearchParams({
     client_id: OIDC_CLIENT_ID,
@@ -224,7 +224,7 @@ async function getAccessToken(
   }
 
   if (!TOKEN_ENDPOINT) await getEndpoints();
-  if (!TOKEN_ENDPOINT) throw "missing token endpoint";
+  if (!TOKEN_ENDPOINT) throw "Missing token endpoint";
 
   // Send the request for the access token.
   const res = await fetch(TOKEN_ENDPOINT, {
@@ -246,7 +246,7 @@ async function getUserInfo(
   accessToken: string,
 ): Promise<UserInfo> {
   if (!USERINFO_ENDPOINT) await getEndpoints();
-  if (!USERINFO_ENDPOINT) throw "missing userinfo endpoint";
+  if (!USERINFO_ENDPOINT) throw "Missing userinfo endpoint";
 
   // Send request for the user info.
   const res = await fetch(USERINFO_ENDPOINT, {
@@ -259,7 +259,7 @@ async function getUserInfo(
   const userInfo = await res.json() as UserInfo;
 
   // Sub is the mandotary field in response for a successful request.
-  if (!userInfo.sub) throw "no user info";
+  if (!userInfo.sub) throw "No user info";
 
   return userInfo;
 }
