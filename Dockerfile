@@ -9,7 +9,7 @@ RUN trivy image --format spdx-json --output /container.json denoland/deno
 # prod
 # ------------------------------------------------------------------------------
 FROM denoland/deno
-LABEL version="v20260206"
+LABEL version="v20260315"
 
 WORKDIR /app
 
@@ -19,11 +19,10 @@ RUN \
   deno cache /app/adapter.ts && \
   deno info /app/adapter.ts --json > /SBOM/application-dependencies.json
 
-ENV KEYCLOAK_ORIGIN "https://ucs-sso-ng.mydomain.corp"
-ENV KEYCLOAK_ORIGIN_INTERNAL ""
-ENV KEYCLOAK_REALM "ucs"
-ENV KEYCLOAK_CLIENT_ID "jitsi"
-ENV KEYCLOAK_CLIENT_SECRET ""
+ENV OIDC_ISSUER_URL "https://ucs-sso-ng.mydomain.corp/realms/ucs"
+ENV OIDC_CLIENT_ID "jitsi"
+ENV OIDC_CLIENT_SECRET ""
+ENV OIDC_SCOPES "openid profile email"
 ENV JWT_ALG "HS256"
 ENV JWT_HASH "SHA-256"
 ENV JWT_APP_ID "myappid"
