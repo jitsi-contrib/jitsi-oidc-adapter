@@ -155,10 +155,9 @@ async function auth(req: Request): Promise<Response> {
   try {
     const host = req.headers.get("host");
     if (!host) throw "host not found";
+
     const url = new URL(req.url);
-    const search = url.search.substr(1);
-    const searchParams = new URLSearchParams(search);
-    const state = searchParams.get("state");
+    const state = url.searchParams.get("state");
     if (!state) throw "state not found";
 
     const redirectUri = `https://${host}/oidc/tokenize`;
@@ -174,19 +173,20 @@ async function auth(req: Request): Promise<Response> {
 // -----------------------------------------------------------------------------
 // - Sub is tenant (if exists). If not then sub is the meeting domain (host).
 // - Tenant is the previous folder in Jitsi's path before the room name.
-// - Path (as input) doesn't contain the room name. So, get the last folder.
-// - Path doesn't exist all the times. So, it may be undefined.
+// - stateTenant (as input) doesn't contain the room name. So, get the last
+//   folder.
+// - stateTenant doesn't exist all the times. So, it may be undefined.
 // -----------------------------------------------------------------------------
-function getSub(host: string, path: string | undefined): string {
-  if (!path) return host;
+function getSub(host: string, stateTenant: string | undefined): string {
+  if (!stateTenant) return host;
 
   // trim trailing slashes
-  path = path.replace(/\/+$/g, "");
+  const tenantPath = stateTenant.replace(/\/+$/g, "");
 
   // get the latest folder from the path
-  const tenant = path.split("/").reverse()[0];
+  const tenant = tenantPath.split("/").at(-1);
 
-  return tenant;
+  return tenant || host;
 }
 
 // -----------------------------------------------------------------------------
