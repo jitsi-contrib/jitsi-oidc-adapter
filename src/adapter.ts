@@ -114,9 +114,13 @@ async function getEndpoints() {
     if (!res.ok) throw "Failed to get endpoints";
 
     const config = await res.json();
-    AUTH_ENDPOINT = config.authorization_endpoint;
-    TOKEN_ENDPOINT = config.token_endpoint;
-    USERINFO_ENDPOINT = config.userinfo_endpoint;
+    AUTH_ENDPOINT = config.authorization_endpoint || "";
+    TOKEN_ENDPOINT = config.token_endpoint || "";
+    USERINFO_ENDPOINT = config.userinfo_endpoint || "";
+
+    if (!AUTH_ENDPOINT || !TOKEN_ENDPOINT || !USERINFO_ENDPOINT) {
+      throw "Missing endpoint";
+    }
 
     console.log(`AUTH_ENDPOINT: ${AUTH_ENDPOINT}`);
     console.log(`TOKEN_ENDPOINT: ${TOKEN_ENDPOINT}`);
@@ -215,8 +219,9 @@ async function getAccessToken(
     data.append("client_id", OIDC_CLIENT_ID);
   }
 
-  // Send the request for the access token.
   if (!TOKEN_ENDPOINT) await getEndpoints();
+
+  // Send the request for the access token.
   const res = await fetch(TOKEN_ENDPOINT, {
     headers: headers,
     method: "POST",
@@ -235,8 +240,9 @@ async function getAccessToken(
 async function getUserInfo(
   accessToken: string,
 ): Promise<UserInfo> {
-  // Send request for the user info.
   if (!USERINFO_ENDPOINT) await getEndpoints();
+
+  // Send request for the user info.
   const res = await fetch(USERINFO_ENDPOINT, {
     headers: {
       "Accept": "application/json",
