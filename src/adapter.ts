@@ -197,7 +197,6 @@ async function getAccessToken(
   code: string,
   jsonState: string,
 ): Promise<string> {
-  const state = encodeURIComponent(jsonState);
   const redirectUri = `https://${host}/oidc/tokenize`;
 
   const headers = new Headers();
@@ -207,13 +206,12 @@ async function getAccessToken(
   data.append("grant_type", "authorization_code");
   data.append("redirect_uri", redirectUri);
   data.append("code", code);
-  data.append("state", state);
+  data.append("state", jsonState);
 
   if (OIDC_CLIENT_SECRET) {
     headers.append(
       "Authorization",
-      "Basic " +
-        encodeBase64(`${OIDC_CLIENT_ID}:${OIDC_CLIENT_SECRET}`),
+      "Basic " + encodeBase64(`${OIDC_CLIENT_ID}:${OIDC_CLIENT_SECRET}`),
     );
   } else {
     data.append("client_id", OIDC_CLIENT_ID);
