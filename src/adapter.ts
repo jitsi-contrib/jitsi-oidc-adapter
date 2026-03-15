@@ -39,6 +39,21 @@ const enum ClientType {
 }
 
 // -----------------------------------------------------------------------------
+// Detect the client type by using the state data coming from the client.
+// -----------------------------------------------------------------------------
+function detectClientType(state: StateType): ClientType {
+  if (state.ios) {
+    return ClientType.ios;
+  } else if (state.android) {
+    return ClientType.android;
+  } else if (state.electron) {
+    return ClientType.electron;
+  } else {
+    return ClientType.browser;
+  }
+}
+
+// -----------------------------------------------------------------------------
 // HTTP response for OK
 // -----------------------------------------------------------------------------
 function ok(body: string): Response {
@@ -326,6 +341,35 @@ function getMeetingUri(
 }
 
 // -----------------------------------------------------------------------------
+// Generate the response for the tokenize endpoint.
+// -----------------------------------------------------------------------------
+function generateTokenizeResponse(uri: string, client: ClientType): Response {
+  // Normal browser client, redirect to the meeting page.
+  if (client == ClientType.browser) {
+    return Response.redirect(uri, STATUS_CODE.Found);
+  }
+
+  // Show page in web browser that feeds JWT to other clients via auto-refresh.
+  const body = `<!DOCTYPE html>
+    <html>
+    <head>
+      <title>Authentication successful</title>
+    </head>
+    <body>
+      <h3>Authentication successful.</h3>
+      <p>You can close this tab and go back to your Jitsi client.</p>
+    </body>
+    </html>`;
+
+  return new Response(body, {
+    headers: {
+      "refresh": `0; url=${uri}`,
+      "content-type": "text/html",
+    },
+  });
+}
+
+// -----------------------------------------------------------------------------
 // - User comes here after redirected by the auth page with a short-term code
 // - Get the OIDC access token by using this short-term auth code
 // - Get the OIDC user info by using the access code
@@ -348,62 +392,20 @@ async function tokenize(req: Request): Promise<Response> {
     const room = state.room;
 
     // Detect client type
-    let client = ClientType.browser;
-    if (state.ios) {
-      client = ClientType.ios;
-    } else if (state.android) {
-      client = ClientType.android;
-    } else if (state.electron) {
-      client = ClientType.electron;
-    }
-
+    const client = detectClientType(state);
     // Get the OIDC access token by using the short-term auth code.
     const accessToken = await getAccessToken(host, code, jsonState);
-
     // Get the OIDC user info by using the access token.
     const userInfo = await getUserInfo(accessToken);
-
     // Generate Jitsi token.
     const jwt = await generateJwt(sub, room, userInfo);
-
     // Generate Jitsi hash.
     const hash = generateHash(jsonState);
+    // Get URI of the Jitsi meeting. Use unmodified path (state.tenant) which is
+    // different than the tenant in JWT context.
+    const uri = getMeetingUri(host, state.tenant, room, jwt, hash, client);
 
-    // Get URI of the Jitsi meeting.
-    // Use unmodified path (state.tenant) which is different than the tenant in
-    // JWT context.
-    const meetingPage = getMeetingUri(
-      host,
-      state.tenant,
-      room,
-      jwt,
-      hash,
-      client,
-    );
-
-    if (client == ClientType.browser) {
-      // Normal browser client: redirect to meeting page
-      return Response.redirect(meetingPage, STATUS_CODE.Found);
-    } else {
-      // Show page in web browser that feeds JWT to other clients via auto-refresh
-      const body = `<!DOCTYPE html>
-        <html>
-        <head>
-         <title>Authentication successful</title>
-        </head>
-        <body>
-          <h3>Authentication successful.</h3>
-          <p>You can close this tab and go back to your Jitsi client.</p>
-        </body>
-        </html>`;
-
-      return new Response(body, {
-        headers: {
-          "refresh": `0; url=${meetingPage}`,
-          "content-type": "text/html",
-        },
-      });
-    }
+    return generateTokenizeResponse(uri, client);
   } catch (e) {
     console.error(e);
     return unauthorized();
