@@ -28,7 +28,9 @@ let USERINFO_ENDPOINT = "";
 let CRYPTO_KEY: CryptoKey;
 
 interface StateType {
-  [key: string]: boolean | string;
+  tenant?: string;
+  room: string;
+  [key: string]: boolean | string | undefined;
 }
 
 const enum ClientType {
@@ -313,14 +315,12 @@ function generateHash(jsonState: string): string {
 // -----------------------------------------------------------------------------
 function getMeetingUri(
   host: string,
-  path: string,
+  tenant: string | undefined,
   room: string,
   jwt: string,
   hash: string,
   client: ClientType,
 ): string {
-  path = path || "";
-
   const clientUriScheme: Record<ClientType, string> = {
     [ClientType.ios]: "org.jitsi.meet",
     [ClientType.android]: "intent",
@@ -330,7 +330,9 @@ function getMeetingUri(
 
   const scheme = clientUriScheme[client];
 
-  let uri = `${host}/${path}/${room}`;
+  tenant = tenant || "";
+
+  let uri = `${host}/${tenant}/${room}`;
   uri = uri.replace(/\/+/g, "/");
   uri = `${scheme}://${uri}?jwt=${jwt}#${hash}`;
   if (client == ClientType.android) {
@@ -380,16 +382,20 @@ async function tokenize(req: Request): Promise<Response> {
   try {
     const host = req.headers.get("host");
     if (!host) throw "host not found";
+
     const url = new URL(req.url);
-    const search = url.search.substr(1);
-    const searchParams = new URLSearchParams(search);
+    const searchParams = url.searchParams;
+
     const code = searchParams.get("code");
     if (!code) throw "code not found";
+
     const jsonState = searchParams.get("state");
     if (!jsonState) throw "state not found";
-    const state = JSON.parse(jsonState);
+
+    const state = JSON.parse(jsonState) as StateType;
     const sub = getSub(host, state.tenant);
     const room = state.room;
+    if (!room) throw "room not found in state";
 
     // Detect client type
     const client = detectClientType(state);
