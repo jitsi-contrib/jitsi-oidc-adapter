@@ -362,6 +362,7 @@ function generateTokenizeResponse(uri: string, client: ClientType): Response {
     <html>
     <head>
       <title>Authentication successful</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     </head>
     <body>
       <h3>Authentication successful.</h3>
