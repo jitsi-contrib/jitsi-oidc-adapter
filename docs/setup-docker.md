@@ -29,6 +29,7 @@ docker run -d \
   -e JWT_APP_ID=myappid \
   -e JWT_APP_SECRET=myappsecret \
   -e ALLOW_UNSECURE_CERT=true \
+  -e AUTO_RETURN_TO_APP=true \
   ghcr.io/jitsi-contrib/jitsi-oidc-adapter
 ```
 
@@ -44,6 +45,18 @@ docker run -d \
 
 - Set `OIDC_CLIENT_SECRET` if the client authentication is enabled in the OIDC
   provider. Otherwise it must be empty.
+
+- Set `AUTO_RETURN_TO_APP` to `true` to automatically redirect users back to the
+  initiating Jitsi app (Android/iOS/Electron). If `false`, users must click a
+  link in the final authentication step. No impact on the web client.
+
+  **Important:** Test with your specific OIDC provider and any Chromium browser
+  (Chrome, Brave, etc.) on Android. Set the Chromium browser as the default
+  browser, make sure it is signed out from your OIDC provider, then start a
+  meeting from the Jitsi Meet Android app and log in. With
+  `AUTO_RETURN_TO_APP=true`, you may observe a broken tab when returning to the
+  browser ([#1](https://github.com/jitsi-contrib/jitsi-oidc-adapter/pull/1)).
+  *Firefox-based Android browsers and Safari on iOS are not affected.*
 
 ## 2. Jitsi
 

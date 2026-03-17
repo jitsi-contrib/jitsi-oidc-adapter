@@ -14,6 +14,7 @@ import {
   OIDC_ISSUER_URL,
   OIDC_SCOPES,
   PORT,
+  AUTO_RETURN_TO_APP,
 } from "./config.ts";
 import { createContext } from "./context.ts";
 import type { UserInfo } from "./context.ts";
@@ -357,25 +358,25 @@ function generateTokenizeResponse(uri: string, client: ClientType): Response {
     return Response.redirect(uri, STATUS_CODE.Found);
   }
 
-  // Show page in web browser that feeds JWT to other clients via auto-refresh.
+  // Show page in web browser that feeds JWT to other clients.
   const body = `<!DOCTYPE html>
     <html>
     <head>
-      <title>Authentication successful</title>
+      <title>Meeting Authentication</title>
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     </head>
     <body>
-      <h3>Authentication successful.</h3>
-      <p>You can close this tab and go back to your Jitsi client.</p>
+      <h1>Meeting Authentication</h1>
+      <p><a href="${uri}"><strong>Finish authentication and return to app</strong></a></p>
+      <p><small>After authentication is finished, this tab can be safely closed.</small></p>
     </body>
     </html>`;
 
-  return new Response(body, {
-    headers: {
-      "refresh": `0; url=${uri}`,
-      "content-type": "text/html",
-    },
-  });
+  const headers = new Headers();
+  headers.append("Content-Type", "text/html");
+  if (AUTO_RETURN_TO_APP) headers.append("Refresh", `0; url=${uri}`);
+
+  return new Response(body, { headers: headers });
 }
 
 // -----------------------------------------------------------------------------
@@ -470,6 +471,7 @@ async function main() {
   console.log(`JWT_EXP_SECOND: ${JWT_EXP_SECOND}`);
   console.log(`HOSTNAME: ${HOSTNAME}`);
   console.log(`PORT: ${PORT}`);
+  console.log(`AUTO_RETURN_TO_APP: ${AUTO_RETURN_TO_APP}`);
 
   const controller = new AbortController();
   const shutdown = () => controller.abort();
