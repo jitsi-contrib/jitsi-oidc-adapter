@@ -3,6 +3,7 @@ import { encodeBase64 } from "jsr:@std/encoding@^1.0.10/base64";
 import { create, getNumericDate } from "jsr:@emrahcom/jwt@^0.4.8";
 import type { Algorithm } from "jsr:@emrahcom/jwt@^0.4.8/algorithm";
 import {
+  AUTO_RETURN_TO_APP,
   HOSTNAME,
   JWT_ALG,
   JWT_APP_ID,
@@ -14,7 +15,6 @@ import {
   OIDC_ISSUER_URL,
   OIDC_SCOPES,
   PORT,
-  AUTO_RETURN_TO_APP,
 } from "./config.ts";
 import { createContext } from "./context.ts";
 import type { UserInfo } from "./context.ts";
@@ -363,12 +363,21 @@ function generateTokenizeResponse(uri: string, client: ClientType): Response {
     <html>
     <head>
       <title>Meeting Authentication</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, shrink-to-fit=no"
+      >
     </head>
     <body>
       <h1>Meeting Authentication</h1>
-      <p><a href="${uri}"><strong>Finish authentication and return to app</strong></a></p>
-      <p><small>After successful authentication, this tab can be closed.</small></p>
+      <p>
+        <a href="${uri}">
+          <strong>Finish authentication and return to app</strong>
+        </a>
+      </p>
+      <p>
+        <small>After successful authentication, this tab can be closed.</small>
+      </p>
     </body>
     </html>`;
 

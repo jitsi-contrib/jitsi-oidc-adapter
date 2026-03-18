@@ -151,15 +151,22 @@ You may also use environment variables instead of updating this config file.
 - `AUTO_RETURN_TO_APP`
 
   Set to `true` to automatically redirect users back to the initiating Jitsi app
-  (Android/iOS/Electron). If `false`, users must click a link in the final
-  authentication step. No impact on the web client.
+  (Android, iOS or Electron) after authentication. If `false`, users must
+  manually click a link in the final step to return. This setting does not
+  affect the web client.
 
-  **Important:** Test with your specific OIDC provider and any Chromium browser
-  (Chrome, Brave, etc.) on Android. Set the Chromium browser as the default
-  browser, make sure it is signed out from your OIDC provider, then start a
-  meeting from the Jitsi Meet Android app and log in. With `AUTO_RETURN_TO_APP=true`,
-  you may observe a broken tab when returning to the browser ([#1](https://github.com/jitsi-contrib/jitsi-oidc-adapter/pull/1)).
-  *Firefox-based Android browsers and Safari on iOS are not affected.*
+  **Important:** When `true`, certain OIDC providers may cause a "broken tab"
+  issue (see [#1](https://github.com/jitsi-contrib/jitsi-oidc-adapter/pull/1))
+  on Chromium-based Android browsers (Chrome, Brave, etc.) when returning to the
+  app. Firefox (Android) and Safari (iOS) are unaffected.
+
+  To test this behavior:
+
+  - Set a Chromium-based browser as the default on Android.
+  - Ensure the browser is signed out of your OIDC provider.
+  - Start a meeting in the Jitsi Meet mobile app and log in.
+  - Observe if the browser tab fails to close or displays an error after
+    returning to the app.
 
 #### 3.2.4 Production notes
 
