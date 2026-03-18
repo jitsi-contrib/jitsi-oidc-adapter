@@ -1,4 +1,4 @@
-import { STATUS_CODE } from "jsr:@std/http@^1.0.23/status";
+import { STATUS_CODE } from "jsr:@std/http@^1.0.25/status";
 import { encodeBase64 } from "jsr:@std/encoding@^1.0.10/base64";
 import { create, getNumericDate } from "jsr:@emrahcom/jwt@^0.4.8";
 import type { Algorithm } from "jsr:@emrahcom/jwt@^0.4.8/algorithm";
