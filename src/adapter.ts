@@ -368,7 +368,7 @@ function generateTokenizeResponse(uri: string, client: ClientType): Response {
     <body>
       <h1>Meeting Authentication</h1>
       <p><a href="${uri}"><strong>Finish authentication and return to app</strong></a></p>
-      <p><small>After authentication is finished, this tab can be safely closed.</small></p>
+      <p><small>After successful authentication, this tab can be closed.</small></p>
     </body>
     </html>`;
 
