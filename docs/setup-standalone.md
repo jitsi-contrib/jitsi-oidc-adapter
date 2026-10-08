@@ -129,6 +129,12 @@ You may also use environment variables instead of updating this config file.
   Required if client authentication is enabled in the OIDC provider, must be
   empty otherwise.
 
+- `OIDC_PROMPT`
+
+  The `prompt` parameter of the authentication request, `consent` by default\
+  Set to an empty value to omit the parameter, e.g. if the OIDC provider shows a
+  consent screen on every login because of it.
+
 - `JWT_APP_ID`
 
   The token `app_id`\

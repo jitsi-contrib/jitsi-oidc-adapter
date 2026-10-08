@@ -13,6 +13,7 @@ import {
   OIDC_CLIENT_ID,
   OIDC_CLIENT_SECRET,
   OIDC_ISSUER_URL,
+  OIDC_PROMPT,
   OIDC_SCOPES,
   PORT,
 } from "./config.ts";
@@ -147,10 +148,10 @@ async function getAuthUri(redirectUri: string, state: string) {
     client_id: OIDC_CLIENT_ID,
     response_type: "code",
     scope: OIDC_SCOPES,
-    prompt: "consent",
     redirect_uri: redirectUri,
     state: state,
   });
+  if (OIDC_PROMPT) params.set("prompt", OIDC_PROMPT);
 
   return `${AUTH_ENDPOINT}?${params.toString()}`;
 }
@@ -473,6 +474,7 @@ async function main() {
     `OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET ? "*** masked ***" : "not used"}`,
   );
   console.log(`OIDC_SCOPES: ${OIDC_SCOPES}`);
+  console.log(`OIDC_PROMPT: ${OIDC_PROMPT || "not used"}`);
   console.log(`JWT_ALG: ${JWT_ALG}`);
   console.log(`JWT_HASH: ${JWT_HASH}`);
   console.log(`JWT_APP_ID: ${JWT_APP_ID}`);

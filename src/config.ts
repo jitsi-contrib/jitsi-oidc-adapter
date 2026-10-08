@@ -5,6 +5,8 @@ export const OIDC_CLIENT_ID = Deno.env.get("OIDC_CLIENT_ID") || "jitsi";
 export const OIDC_CLIENT_SECRET = Deno.env.get("OIDC_CLIENT_SECRET") || "";
 export const OIDC_SCOPES = Deno.env.get("OIDC_SCOPES") ||
   "openid profile email";
+// set to an empty string to omit the prompt parameter
+export const OIDC_PROMPT = Deno.env.get("OIDC_PROMPT") ?? "consent";
 
 // jwt
 export const JWT_ALG = Deno.env.get("JWT_ALG") || "HS256";
