@@ -46,6 +46,11 @@ docker run -d \
 - Set `OIDC_CLIENT_SECRET` if the client authentication is enabled in the OIDC
   provider. Otherwise it must be empty.
 
+- `OIDC_PROMPT` is sent to the OIDC provider as the `prompt` parameter (_it is
+  `consent` by default_). Set it to an empty value to omit the parameter, e.g.
+  if the provider shows a consent screen on every login because of it. Dex
+  `v2.46.0` and later does so even if `skipApprovalScreen` is enabled.
+
 - Set `AUTO_RETURN_TO_APP` to `true` to automatically redirect users back to the
   initiating Jitsi app (Android, iOS or Electron) after authentication. If
   `false`, users must manually click a link in the final step to return. This
