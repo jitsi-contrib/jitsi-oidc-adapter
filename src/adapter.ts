@@ -10,6 +10,7 @@ import {
   JWT_APP_SECRET,
   JWT_EXP_SECOND,
   JWT_HASH,
+  JWT_NBF_LEEWAY_SECOND,
   OIDC_CLIENT_ID,
   OIDC_CLIENT_SECRET,
   OIDC_ISSUER_URL,
@@ -280,7 +281,10 @@ async function generateJwt(
     sub: sub,
     room: room,
     iat: getNumericDate(0),
-    nbf: getNumericDate(0),
+    // getNumericDate() rounds to the nearest second, so a "now" value may be
+    // up to 0.5 seconds in the future. Prosody rejects such a token with
+    // "Not acceptable by nbf". Backdate it by a small leeway.
+    nbf: getNumericDate(-JWT_NBF_LEEWAY_SECOND),
     exp: getNumericDate(JWT_EXP_SECOND),
     context: createContext(userInfo),
   };
@@ -478,6 +482,7 @@ async function main() {
   console.log(`JWT_APP_ID: ${JWT_APP_ID}`);
   console.log(`JWT_APP_SECRET: *** masked ***`);
   console.log(`JWT_EXP_SECOND: ${JWT_EXP_SECOND}`);
+  console.log(`JWT_NBF_LEEWAY_SECOND: ${JWT_NBF_LEEWAY_SECOND}`);
   console.log(`HOSTNAME: ${HOSTNAME}`);
   console.log(`PORT: ${PORT}`);
   console.log(`AUTO_RETURN_TO_APP: ${AUTO_RETURN_TO_APP}`);

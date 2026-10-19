@@ -143,6 +143,12 @@ You may also use environment variables instead of updating this config file.
 
   The token expire time
 
+- `JWT_NBF_LEEWAY_SECOND`
+
+  How many seconds the token `nbf` (not before) is set into the past. It
+  tolerates rounding and small clock differences between the adapter and
+  Prosody. Default: `10`
+
 - `HOSTNAME`
 
   The IP address for the adapter service. Don't update its default value since
