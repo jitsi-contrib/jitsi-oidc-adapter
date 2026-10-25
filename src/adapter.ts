@@ -56,6 +56,18 @@ function detectClientType(state: StateType): ClientType {
 }
 
 // -----------------------------------------------------------------------------
+// Escape a value before putting it into an HTML document or attribute.
+// -----------------------------------------------------------------------------
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// -----------------------------------------------------------------------------
 // HTTP response for OK
 // -----------------------------------------------------------------------------
 function ok(body: string): Response {
@@ -337,9 +349,14 @@ function getMeetingUri(
 
   const scheme = clientUriScheme[client];
 
-  tenant = tenant || "";
+  // tenant and room come from the client-controlled state. Encode each path
+  // segment so that they cannot break out of the path.
+  const tenantPath = (tenant || "")
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
 
-  let uri = `${host}/${tenant}/${room}`;
+  let uri = `${host}/${tenantPath}/${encodeURIComponent(room)}`;
   uri = uri.replace(/\/+/g, "/");
   uri = `${scheme}://${uri}?jwt=${jwt}#${hash}`;
   if (client == ClientType.android) {
@@ -371,7 +388,7 @@ function generateTokenizeResponse(uri: string, client: ClientType): Response {
     <body>
       <h1>Meeting Authentication</h1>
       <p>
-        <a href="${uri}">
+        <a href="${escapeHtml(uri)}">
           <strong>Finish authentication and return to app</strong>
         </a>
       </p>
@@ -382,7 +399,13 @@ function generateTokenizeResponse(uri: string, client: ClientType): Response {
     </html>`;
 
   const headers = new Headers();
-  headers.append("Content-Type", "text/html");
+  headers.append("Content-Type", "text/html; charset=utf-8");
+  // The page needs neither scripts nor styles.
+  headers.append(
+    "Content-Security-Policy",
+    "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  );
+  headers.append("X-Content-Type-Options", "nosniff");
   if (AUTO_RETURN_TO_APP) headers.append("Refresh", `0; url=${uri}`);
 
   return new Response(body, { headers: headers });
