@@ -27,6 +27,12 @@ let AUTH_ENDPOINT = "";
 let TOKEN_ENDPOINT = "";
 let USERINFO_ENDPOINT = "";
 let CRYPTO_KEY: CryptoKey;
+const SILENT_LOGIN_ERRORS = [
+  "login_required",
+  "interaction_required",
+  "consent_required",
+  "account_selection_required",
+];
 
 interface StateType {
   android?: boolean;
@@ -139,7 +145,7 @@ async function getEndpoints() {
 // -----------------------------------------------------------------------------
 // Prepare the auth URI for the OIDC auth page.
 // -----------------------------------------------------------------------------
-async function getAuthUri(redirectUri: string, state: string) {
+async function getAuthUri(redirectUri: string, state: string, prompt: string) {
   if (!AUTH_ENDPOINT) await getEndpoints();
   if (!AUTH_ENDPOINT) throw new Error("Missing authentication endpoint");
 
@@ -147,7 +153,7 @@ async function getAuthUri(redirectUri: string, state: string) {
     client_id: OIDC_CLIENT_ID,
     response_type: "code",
     scope: OIDC_SCOPES,
-    prompt: "consent",
+    prompt: prompt,
     redirect_uri: redirectUri,
     state: state,
   });
@@ -157,6 +163,8 @@ async function getAuthUri(redirectUri: string, state: string) {
 
 // -----------------------------------------------------------------------------
 // Redirect the user to the OIDC auth page to get the short-term auth code.
+// prompt=none asks for a silent login, without any interaction. The only other
+// prompt value is the default one, consent.
 // -----------------------------------------------------------------------------
 async function auth(req: Request): Promise<Response> {
   try {
@@ -167,8 +175,11 @@ async function auth(req: Request): Promise<Response> {
     const state = url.searchParams.get("state");
     if (!state) throw new Error("state not found");
 
+    const prompt = url.searchParams.get("prompt") === "none"
+      ? "none"
+      : "consent";
     const redirectUri = `https://${host}/oidc/tokenize`;
-    const authPage = await getAuthUri(redirectUri, state);
+    const authPage = await getAuthUri(redirectUri, state, prompt);
 
     return Response.redirect(authPage, STATUS_CODE.Found);
   } catch (e) {
@@ -324,7 +335,7 @@ function getMeetingUri(
   host: string,
   tenant: string | undefined,
   room: string,
-  jwt: string,
+  jwt: string | undefined,
   hash: string,
   client: ClientType,
 ): string {
@@ -341,7 +352,7 @@ function getMeetingUri(
 
   let uri = `${host}/${tenant}/${room}`;
   uri = uri.replace(/\/+/g, "/");
-  uri = `${scheme}://${uri}?jwt=${jwt}#${hash}`;
+  uri = `${scheme}://${uri}${jwt ? `?jwt=${jwt}` : ""}#${hash}`;
   if (client == ClientType.android) {
     uri += "#Intent;scheme=org.jitsi.meet;package=org.jitsi.meet;end";
   }
@@ -394,6 +405,8 @@ function generateTokenizeResponse(uri: string, client: ClientType): Response {
 // - Get the OIDC user info by using the access code
 // - Generate Jitsi's token by using the user info
 // - Redirect the user to Jitsi's meeting page with a token and hashes
+// - If a silent login failed, redirect the user to Jitsi's meeting page with
+//   hashes but without a token
 // -----------------------------------------------------------------------------
 async function tokenize(req: Request): Promise<Response> {
   try {
@@ -402,9 +415,6 @@ async function tokenize(req: Request): Promise<Response> {
 
     const url = new URL(req.url);
     const searchParams = url.searchParams;
-
-    const code = searchParams.get("code");
-    if (!code) throw new Error("code not found");
 
     const jsonState = searchParams.get("state");
     if (!jsonState) throw new Error("state not found");
@@ -416,6 +426,28 @@ async function tokenize(req: Request): Promise<Response> {
 
     // Detect client type
     const client = detectClientType(state);
+
+    // A silent login (prompt=none) fails with one of these errors if the user
+    // has no session on the OIDC provider (OpenID Connect Core 3.1.2.6). The
+    // user returns to the meeting without a token, as a guest.
+    const error = searchParams.get("error");
+    if (error && SILENT_LOGIN_ERRORS.includes(error)) {
+      const hash = generateHash(jsonState);
+      const uri = getMeetingUri(
+        host,
+        state.tenant,
+        room,
+        undefined,
+        hash,
+        client,
+      );
+
+      return Response.redirect(uri, STATUS_CODE.Found);
+    }
+
+    const code = searchParams.get("code");
+    if (!code) throw new Error("code not found");
+
     // Get the OIDC access token by using the short-term auth code.
     const accessToken = await getAccessToken(host, code, jsonState);
     // Get the OIDC user info by using the access token.
