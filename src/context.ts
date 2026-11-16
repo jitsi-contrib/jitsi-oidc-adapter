@@ -9,6 +9,7 @@ export interface UserInfo {
   name?: string;
   preferred_username?: string;
   email?: string;
+  picture?: string;
 }
 
 export function createContext(userInfo: UserInfo) {
@@ -17,6 +18,7 @@ export function createContext(userInfo: UserInfo) {
       id: userInfo.sub,
       name: userInfo.name?.trim() || userInfo.preferred_username?.trim() || "",
       email: userInfo.email?.trim() || "",
+      avatar: userInfo.picture || "",
       lobby_bypass: true,
       security_bypass: true,
     },
