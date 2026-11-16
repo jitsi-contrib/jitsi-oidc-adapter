@@ -346,7 +346,9 @@ function getMeetingUri(
 
   let uri = `${host}/${tenant}/${room}`;
   uri = uri.replace(/\/+/g, "/");
-  uri = `${scheme}://${uri}${jwt ? `?jwt=${jwt}` : ""}#${hash}`;
+  uri = `${scheme}://${uri}`;
+  if (jwt) uri += `?jwt=${jwt}`;
+  uri += `#${hash}`;
   if (client == ClientType.android) {
     uri += "#Intent;scheme=org.jitsi.meet;package=org.jitsi.meet;end";
   }
@@ -482,6 +484,61 @@ async function tokenize(req: Request): Promise<Response> {
 }
 
 // -----------------------------------------------------------------------------
+// Generate the silent login script. Jitsi loads it in the head of its page:
+//
+//   <script src="/oidc/silent-login.js"></script>
+//
+// - Skip if the URL has already a token or if the adapter has already handled
+//   it (adapter=true in the hash)
+// - Skip if there is no room in the path, e.g. / or /tenant/
+// - Redirect the user to the auth page with prompt=none. The user comes back
+//   with a token if there is a session on the OIDC provider, or as a guest if
+//   not.
+// -----------------------------------------------------------------------------
+function silentLogin(): Response {
+  const body = `
+    function oidcSilentLogin() {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("jwt")) return;
+
+      const params = url.hash.substring(1).split("&").filter(Boolean);
+      if (params.includes("adapter=true")) return;
+
+      const folders = url.pathname.split("/");
+      const room = folders.pop();
+      if (!room) return;
+
+      const tenant = folders.filter(Boolean).join("/");
+      const state = { room: room, tenant: tenant };
+
+      // keep the config overrides in the hash
+      for (const param of params) {
+        const [key, value = ""] = param.split("=");
+        const name = decodeURIComponent(key);
+
+        try {
+          state[name] = JSON.parse(decodeURIComponent(value));
+        } catch {
+          state[name] = decodeURIComponent(value);
+        }
+      }
+
+      window.location.replace(
+        "/oidc/auth?prompt=none&state=" +
+          encodeURIComponent(JSON.stringify(state)),
+      );
+    }
+
+    oidcSilentLogin();`;
+
+  const headers = new Headers();
+  headers.append("Content-Type", "text/javascript");
+  headers.append("Cache-Control", "max-age=3600");
+
+  return new Response(body, { headers: headers });
+}
+
+// -----------------------------------------------------------------------------
 // handler
 // -----------------------------------------------------------------------------
 async function handler(req: Request): Promise<Response> {
@@ -498,6 +555,8 @@ async function handler(req: Request): Promise<Response> {
     return await auth(req);
   } else if (path === "/oidc/tokenize") {
     return await tokenize(req);
+  } else if (path === "/oidc/silent-login.js") {
+    return silentLogin();
   } else {
     return notFound();
   }

@@ -20,11 +20,14 @@ to provide more general OIDC support.
 - Allows guest users and `wait for host` screen if needed.
 - Returns the user to the meeting without a token, as a guest, if the login
   fails.
-- Optional silent login. `/oidc/auth?prompt=none&state={state}` logs the user in
-  without any interaction if there is already a session on the OIDC provider.
-  Otherwise the user returns to the meeting as a guest. In both cases the URL
-  hash contains `adapter=true`, so a client-side script can avoid a redirect
-  loop.
+- Optional silent login. It logs the user in without any interaction if there is
+  already a session on the OIDC provider. Otherwise the user stays a guest. To
+  enable it, add this line to Jitsi's `plugin.head.html`. Keep it a plain
+  script, without `async` or `defer`, so it runs before Jitsi starts.
+
+  ```html
+  <script src="/oidc/silent-login.js"></script>
+  ```
 
 ## 2. Setup
 
