@@ -1,7 +1,5 @@
 # Dockerized setup
 
-**NOT READY YET**
-
 - [1. OIDC Adapter](#1-oidc-adapter)
 - [2. Jitsi](#2-jitsi)
   - [2.1 OIDC adapter as a proxy](#21-oidc-adapter-as-a-proxy)
