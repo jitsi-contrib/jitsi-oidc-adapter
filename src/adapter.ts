@@ -27,12 +27,6 @@ let AUTH_ENDPOINT = "";
 let TOKEN_ENDPOINT = "";
 let USERINFO_ENDPOINT = "";
 let CRYPTO_KEY: CryptoKey;
-const SILENT_LOGIN_ERRORS = [
-  "login_required",
-  "interaction_required",
-  "consent_required",
-  "account_selection_required",
-];
 
 interface StateType {
   android?: boolean;
@@ -167,12 +161,12 @@ async function getAuthUri(redirectUri: string, state: string, prompt: string) {
 // prompt value is the default one, consent.
 // -----------------------------------------------------------------------------
 async function auth(req: Request): Promise<Response> {
-  try {
-    const host = req.headers.get("host");
-    if (!host) throw new Error("host not found");
+  const host = req.headers.get("host");
+  const url = new URL(req.url);
+  const state = url.searchParams.get("state");
 
-    const url = new URL(req.url);
-    const state = url.searchParams.get("state");
+  try {
+    if (!host) throw new Error("host not found");
     if (!state) throw new Error("state not found");
 
     const prompt = url.searchParams.get("prompt") === "none"
@@ -184,7 +178,7 @@ async function auth(req: Request): Promise<Response> {
     return Response.redirect(authPage, STATUS_CODE.Found);
   } catch (e) {
     console.error(e);
-    return unauthorized();
+    return returnAsGuest(host, state);
   }
 }
 
@@ -400,23 +394,56 @@ function generateTokenizeResponse(uri: string, client: ClientType): Response {
 }
 
 // -----------------------------------------------------------------------------
+// If the login fails, return the user to the meeting without a token, as a
+// guest. This needs the meeting in the state. Without it, there is no meeting
+// to return to.
+// -----------------------------------------------------------------------------
+function returnAsGuest(
+  host: string | null,
+  jsonState: string | null,
+): Response {
+  try {
+    if (!host) throw new Error("host not found");
+    if (!jsonState) throw new Error("state not found");
+
+    const state = JSON.parse(jsonState) as StateType;
+    if (!state.room) throw new Error("room not found in state");
+
+    const client = detectClientType(state);
+    const hash = generateHash(jsonState);
+    const uri = getMeetingUri(
+      host,
+      state.tenant,
+      state.room,
+      undefined,
+      hash,
+      client,
+    );
+
+    return generateTokenizeResponse(uri, client);
+  } catch (e) {
+    console.error(e);
+    return unauthorized();
+  }
+}
+
+// -----------------------------------------------------------------------------
 // - User comes here after redirected by the auth page with a short-term code
 // - Get the OIDC access token by using this short-term auth code
 // - Get the OIDC user info by using the access code
 // - Generate Jitsi's token by using the user info
 // - Redirect the user to Jitsi's meeting page with a token and hashes
-// - If a silent login failed, redirect the user to Jitsi's meeting page with
-//   hashes but without a token
+// - If anything fails, redirect the user to Jitsi's meeting page without a
+//   token
 // -----------------------------------------------------------------------------
 async function tokenize(req: Request): Promise<Response> {
+  const host = req.headers.get("host");
+  const url = new URL(req.url);
+  const searchParams = url.searchParams;
+  const jsonState = searchParams.get("state");
+
   try {
-    const host = req.headers.get("host");
     if (!host) throw new Error("host not found");
-
-    const url = new URL(req.url);
-    const searchParams = url.searchParams;
-
-    const jsonState = searchParams.get("state");
     if (!jsonState) throw new Error("state not found");
 
     const state = JSON.parse(jsonState) as StateType;
@@ -427,23 +454,10 @@ async function tokenize(req: Request): Promise<Response> {
     // Detect client type
     const client = detectClientType(state);
 
-    // A silent login (prompt=none) fails with one of these errors if the user
-    // has no session on the OIDC provider (OpenID Connect Core 3.1.2.6). The
-    // user returns to the meeting without a token, as a guest.
+    // The OIDC provider returns an error instead of a code if the login fails,
+    // e.g. login_required for a silent login without a session.
     const error = searchParams.get("error");
-    if (error && SILENT_LOGIN_ERRORS.includes(error)) {
-      const hash = generateHash(jsonState);
-      const uri = getMeetingUri(
-        host,
-        state.tenant,
-        room,
-        undefined,
-        hash,
-        client,
-      );
-
-      return Response.redirect(uri, STATUS_CODE.Found);
-    }
+    if (error) throw new Error(`login failed: ${error}`);
 
     const code = searchParams.get("code");
     if (!code) throw new Error("code not found");
@@ -463,7 +477,7 @@ async function tokenize(req: Request): Promise<Response> {
     return generateTokenizeResponse(uri, client);
   } catch (e) {
     console.error(e);
-    return unauthorized();
+    return returnAsGuest(host, jsonState);
   }
 }
 
