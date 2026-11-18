@@ -12,6 +12,11 @@ export const JWT_HASH = Deno.env.get("JWT_HASH") || "SHA-256";
 export const JWT_APP_ID = Deno.env.get("JWT_APP_ID") || "myappid";
 export const JWT_APP_SECRET = Deno.env.get("JWT_APP_SECRET") || "myappsecret";
 export const JWT_EXP_SECOND = Number(Deno.env.get("JWT_EXP_SECOND") || 10800);
+// Backdate "nbf" a bit to tolerate rounding and small clock skew between the
+// adapter, Prosody and the client.
+export const JWT_NBF_LEEWAY_SECOND = Number(
+  Deno.env.get("JWT_NBF_LEEWAY_SECOND") || 10,
+);
 
 // adapter
 export const HOSTNAME = Deno.env.get("HOSTNAME") || "127.0.0.1";
