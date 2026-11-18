@@ -5,6 +5,7 @@
   - [2.1 OIDC adapter as a proxy](#21-oidc-adapter-as-a-proxy)
   - [2.2 Token authentication](#22-token-authentication)
   - [2.3 Guest participants](#23-guest-participants)
+  - [2.4 Silent login (optional)](#24-silent-login-optional)
 
 The setup guide to integrate `Jitsi OIDC Adapter` with a Dockerized Jitsi setup.
 
@@ -129,3 +130,21 @@ activate "wait for host" feature:
 - Enable the wait for host module
 
   `XMPP_MUC_MODULES=muc_wait_for_host`
+
+### 2.4 Silent login (optional)
+
+The silent login logs the user in without any interaction if there is already a
+session on the OIDC provider. Otherwise the user stays a guest.
+
+Create `~/.jitsi-meet-cfg/web/plugin.head.html` with the following line:
+
+```html
+<script src="/oidc/silent-login.js"></script>
+```
+
+Mount this file into Jitsi's `web` container by adding the following line to the
+`volumes` of the `web` service in `docker-compose.yml`:
+
+```yaml
+- ${CONFIG}/web/plugin.head.html:/usr/share/jitsi-meet/plugin.head.html:ro,Z
+```
